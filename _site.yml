@@ -1,0 +1,14 @@
+name: "Warren Wang"
+output_dir: "."
+navbar:
+  title: "The marketer knows data"
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "About Me"
+      href: about.html
+    - text: "Project"
+      href: project.html
+# If we want to update, by simply chage text here does not chagne the website, since the html has been coded by previous version.
+# remember to run rmarkdown::render_site() in R again!
+# or simply use knit bottom on the rmd doc we are updating in Rstudio
