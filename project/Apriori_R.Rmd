@@ -1,0 +1,419 @@
+---
+title: "Apriori"
+author: "Warren Wang"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    smooth_scroll: true
+    df_print: paged
+    theme: journal
+---
+#set environment
+```{R, include=FALSE,message=FALSE,warning=FALSE}
+library(reader)
+library(tidyverse)
+library(gridExtra)
+library(arules)
+library(scales)
+bf <- read_csv('/Users/warren/Desktop/UTD/18\ Winter\ break/project/Black\ Friday/BlackFriday.csv')
+
+```
+#EDA
+##data structure transforming 
+```{R,EDA,message=FALSE,warning=FALSE}
+summary(bf)
+head(bf)
+str(bf)
+# User_ID: Unique identifier of shopper.
+# Product_ID: Unique identifier of product. (No key given)
+# Gender: Sex of shopper.
+# Age: Age of shopper split into bins.
+# Occupation: Occupation of shopper. (No key given)
+# City_Category: Residence location of shopper. (No key given)
+# Stay_In_Current_City_Years: Number of years stay in current city.
+# Marital_Status: Marital status of shopper.
+# Product_Category_1: Product category of purchase.
+# Product_Category_2: Product may belong to other category.
+# Product_Category_3: Product may belong to other category.
+# Purchase: Purchase amount in dollars.
+
+##Below are my steps for doing this project:
+##1. Finishing EDA on every variable, getting information, comming out proper actions.
+##2. When doing EDA, transferring every variable into right datatype
+##3. Feature Engeering 
+##4. Modelling
+```
+##Gender
+```{R,Gender,message=FALSE,warning=FALSE}
+gender <- bf%>%select(User_ID,Gender)%>%group_by(User_ID)%>%distinct()
+summary(gender)
+##info: there are 5891 distinct customers
+
+ggplot(gender)+
+  geom_bar(aes(x=Gender,y=..count.., fill=Gender))+
+  labs(title='Gender of Customers')+
+  scale_fill_brewer(palette='PuBuGn')
+
+sum(gender$Gender=='M')/nrow(gender)
+
+##info: there are 71.7% of cutomers are Males
+##actn: take into account males' buying behavior
+
+##However, maybe Females have stornger buying power?
+##Q: whether females spend more?
+
+genderSpend <- bf%>%select(User_ID, Gender, Purchase)%>%group_by(User_ID,Gender)%>% summarise(totalSpending=sum(Purchase),avgSpending=mean(Purchase))
+
+ggplot(genderSpend, aes(totalSpending))+
+  geom_histogram(bins = 200)+
+  scale_x_continuous(labels=comma)+
+  coord_cartesian(xlim=c(0,5000000))+
+  facet_wrap(~Gender)+
+  labs(title='Total Spending distribution devided by Gender')
+
+ggplot(genderSpend, aes(avgSpending))+
+  geom_histogram(bins=100)+
+  facet_wrap(~Gender)+
+  labs(title='Average Spending distribution devided by Gender')
+
+ggplot(genderSpend,aes(Gender, totalSpending))+
+  geom_bar(stat='summary', fun.y='mean', fill='gold2')+
+  labs(title='TotalSpending mean devided by Gender')+
+  geom_hline(yintercept=median(genderSpend$totalSpending[genderSpend$Gender=='F']), linetype='dashed', color='red')+
+  geom_hline(yintercept=median(genderSpend$totalSpending[genderSpend$Gender!='F']), linetype='dashed', color='blue')
+
+ggplot(genderSpend,aes(Gender, totalSpending))+
+  geom_bar(stat='summary',fun.y='median')+
+  labs(title='TotalSpending median devided by Gender')+
+  scale_y_continuous(labels=comma)
+
+##info: Males spend more, on average and on median. (F medain=398178, M median=565925; F mean= 699054,M mean=911963.2)
+##info: Distribution(right skewed) says that both genders have some super shoppers (outliers spending very much)
+##actn: Figuring out what super shoppers buy and what most of people buy
+```
+##Top Sellers
+```{R,Top Sellers,message=FALSE,warning=FALSE}
+topSeller <- bf%>%select(Product_ID)%>%group_by(Product_ID)%>%summarise(count=n())%>%arrange(desc(count))
+sum(topSeller$count[1:5])/nrow(bf)
+##info: 3,623 products in Total
+##info: Top 5 Selling product:P00265242,P00110742,P00025442,P00112142,P00057642 consisting 1.5% in total buying times
+
+top5 <- bf[bf$Product_ID==topSeller$Product_ID[1:5],]%>% arrange(Product_ID)
+##Q: if gender play a role
+
+top5WithGender <- top5 %>% group_by(Product_ID,Gender)%>%summarise(count=n())
+sum(top5WithGender$count[top5WithGender$Gender=='M'&top5WithGender$Product_ID!='P00265242'])/sum(top5WithGender$count[top5WithGender$Product_ID!='P00265242'])
+
+
+##info: if we uncount P00265242, Males consist more purchase of other top 4 seller. 
+##79.6% of purchase of these 4 products are for males, while for whole dataset, males contribute 71.7%. This conclusion makes sense, since the majority of customers are males, and what they like are more likely become top seller.
+
+
+```
+##Age
+```{R,Age,message=FALSE,warning=FALSE}
+cust_Age <- bf%>%select(User_ID,Age,Gender,City_Category)%>% distinct()
+
+ggplot(cust_Age,aes(Age,fill=Age))+
+  geom_bar()+
+  labs(title='Distribution of Customers Age')
+
+##Q: if Age play a role in top5 selling products?
+ggplot(top5, aes(Age))+
+  geom_bar(aes(fill=Product_ID))+
+  facet_wrap(~Product_ID,nrow=5)+
+  labs(title='Distribution of Customers Age of Top 5 Selling Product')
+## info:There are some deviation in 26-35 category but not very clear. 
+
+##Q: age distribution when considering city?
+ggplot(cust_Age, aes(as.factor(Age),fill=City_Category))+
+  geom_bar(aes(y=(..count..)/sum(..count..)*100))+
+  facet_wrap(~City_Category)+
+  theme(axis.text.x = element_text(angle=45, size=10, color='grey'))+
+  labs(y='Percentage', x='Age')
+
+##info: city A customers are younger
+
+```
+##City
+```{R,City,message=FALSE,warning=FALSE}
+cust_City <-bf%>%select(User_ID,City_Category,Stay_In_Current_City_Years,Purchase)%>%group_by(User_ID,City_Category,Stay_In_Current_City_Years)%>%summarise(sumPurchase=sum(Purchase))
+
+ggplot(cust_City,aes(City_Category))+
+  geom_bar(aes(fill=City_Category))+
+  labs(title='Distribution of city category customers live in')
+
+##info: more than 50% of cutomers live in category C.
+##actn: looking for the geographical and cultural features of these cities.
+
+##Q: Does city_category has relation with Purchase amount of individual customers?
+
+ggplot(cust_City,aes(City_Category,sumPurchase))+
+  geom_boxplot(aes(fill=City_Category),alpha=0.25)+
+  scale_y_continuous(label=comma)+
+  coord_cartesian(ylim=c(0,7000000))+
+  labs(title='Distribution of purchase amount of each City_Category')
+##info: customers' purchase amount range is most wide in City_Category B, however City_Category A has more super shoppers.
+##info:  City_Category C's customers spend the least and are the least likely be a super shopper.
+
+##Q: Does total purchase amount of each City_Category has something to say?
+sumPurEachCat <- cust_City%>%group_by(City_Category)%>%summarise(sumPurchase=sum(sumPurchase))
+ggplot(sumPurEachCat,aes(City_Category,sumPurchase))+
+  geom_bar(stat='identity',aes(fill=City_Category))+
+  scale_y_continuous(label=comma)+
+  labs(title='Total purchase amount of each City_Category')
+
+##info: Eventhough City_Category B has fewer customers, it howevers contributes more revenue to this retailer.
+##info: City_Category A has the fewest customers, around 1/3 the number of City_Category C, however City_Category A contributes almost the same amount of purchase amount. Maybe the super shoppers in City_Category A play a role!
+##actn: On limited MKT budget, we need to focus on promotion to City_Category B's normal customers and City_Category A's super shoppers.
+
+##Q: behaviors of customers in each city
+
+cust_pur_city <- bf%>% group_by(User_ID,City_Category)%>%summarise(count=n(),amount=sum(Purchase))%>%arrange(desc(count))
+
+table(cust_pur_city$City_Category[1:100])
+
+ggplot(cust_pur_city,aes(User_ID,count))+
+  geom_point(aes(col=City_Category,alpha=0.1,position='jitter'))+
+  facet_wrap(~City_Category)+
+  theme(axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank())+
+  labs(title = "distribution of purchase items in each city")+
+  theme(legend.position='none')
+
+##info: 67% of top 100 shoppers are from city A.
+##info: Customers in city C buy very few times.
+##info: City A has many super shoppers.
+##actn: find out the reason why city C buy less amount.
+
+
+
+```
+##Stay_In_Current_City_Years
+```{R,Stay_In_Current_City_Years,message=FALSE,warning=FALSE}
+table(bf$Stay_In_Current_City_Years)
+
+#transformming values into integer for more convenient when modelling
+order=c('0'=0,'1'=1,'2'=2,'3'=3,'4'=4,'4+'=5)
+bf$Stay_In_Current_City_Years <- 
+as.numeric(plyr::revalue(bf$Stay_In_Current_City_Years,order))
+summary(bf$Stay_In_Current_City_Years)
+
+##Q: Does Stay_In_Current_City_Years variable has some information?
+ggplot(bf, aes(as.factor(Stay_In_Current_City_Years)))+
+  geom_bar(aes(fill=as.factor(Stay_In_Current_City_Years)))+
+  scale_fill_brewer(palette=15)+
+  labs(title = 'Customers Stay in Current City', y = 'Count', x = 'Stay in Current City', fill = 'Number of Years in Current City')
+
+ggplot(bf, aes(City_Category,Stay_In_Current_City_Years))+
+  geom_boxplot()
+
+bf_Stay_Year <- bf%>% select(City_Category,Stay_In_Current_City_Years)%>% group_by(City_Category)%>% summarise(mean=mean(Stay_In_Current_City_Years), median=median(Stay_In_Current_City_Years))
+print(bf_Stay_Year)
+
+ggplot(bf,aes(as.factor(Stay_In_Current_City_Years),Purchase))+
+  geom_histogram(stat = 'summary', fun.y='mean')
+
+cor(bf$Purchase,bf$Stay_In_Current_City_Years)
+
+## It seems that there is small info in this variable. We only know customers staying in current city for just one year is the biggest part. 
+
+
+stay_cities <- bf %>%
+  group_by(City_Category, Stay_In_Current_City_Years) %>% summarise(count=n()) %>% mutate(Percentage=count/sum(count)*100)
+
+ggplot(stay_cities,aes(City_Category,count, fill= as.factor(Stay_In_Current_City_Years)))+
+  geom_bar(stat='identity')+scale_fill_brewer(palette = 2)+
+  labs(title = "City Category + Stay in Current City", y = "Total Count (Years)", x = "City", fill = "Stay Years")
+
+
+####The heights of the bars commonly represent one of two things: either a count of cases in each group, or the values in a column of the data frame. By default, geom_bar uses stat="bin". This makes the height of each bar equal to the number of cases in each group, and it is incompatible with mapping values to the y aesthetic. If you want the heights of the bars to represent values in the data, use stat="identity" and map a value to the y aesthetic.
+
+```
+
+##Purchase
+
+```{R,Purchase,message=FALSE,warning=FALSE}
+
+cust_purchase <- cust_City%>%ungroup()%>% select(User_ID,sumPurchase)
+
+##Q: distribution of purchase amount?
+
+ggplot(cust_purchase,aes(sumPurchase))+
+  geom_density(adjust=1)+
+  geom_vline(aes(xintercept=median(cust_purchase$sumPurchase)),col='blue',linetype='dotted')+
+  geom_vline(aes(xintercept=mean(cust_purchase$sumPurchase)),col='red',linetype='dashed')+
+  geom_text(aes(x=mean(cust_purchase$sumPurchase)),label=round(mean(cust_purchase$sumPurchase)), y=1.2e-06, color='red', angle=360, size=4, vjust=3, hjust=-.1)+
+  geom_text(aes(x=median(cust_purchase$sumPurchase)),label=round(median(cust_purchase$sumPurchase)), y=1.2e-06, col='blue', angle= 360, size=4, vjust=0, hjust=-.1)+
+  scale_x_continuous(name="Purchase Amount", limits=c(0,7500000),breaks=seq(0,7500000,by=1000000),expand=c(0,0), labels = comma)+
+  scale_y_continuous(name="Density ", limits=c(0,.00000125), labels=scientific, expand= c(0,0))
+
+##info: very right skewed, the mean and median are deviated from the peak of probability.
+##actn: focus on high value shopper?
+
+```
+
+##Marital status
+
+```{r}
+mart_stat <- bf %>% select(User_ID,Marital_Status) %>% group_by(User_ID)%>% distinct()
+
+#Q: What percentage of customers is married?
+mean(mart_stat$Marital_Status)
+##info: arround 42% of customers has married.
+
+##Q: relationship between marriage and city?
+
+mart_city <- mart_stat%>%left_join(cust_City, by='User_ID') %>% group_by(City_Category, Marital_Status)%>% tally()
+
+ggplot(mart_city, aes(City_Category,n, fill=as.factor(Marital_Status)))+
+  geom_bar(stat='identity', col='black')+
+  scale_fill_brewer(palette = 10)+
+  labs(title="City + Marital Status",y="Total Count (Shoppers)",x='City',fill="Marital Status")
+
+##info: city A has a higher percentage of unmarriage, it also has more big shopper.
+
+##Q: Is "stay in current city" correlated with marital status?
+mart_stay <- mart_stat%>% left_join(cust_City,by='User_ID')%>%group_by(Stay_In_Current_City_Years,Marital_Status)%>%tally()%>%mutate(percent=n/sum(n)*100)
+
+ggplot(mart_stay, aes(Stay_In_Current_City_Years,n, fill=as.factor(Marital_Status)))+
+  geom_bar(stat='identity')+
+  scale_fill_brewer(palette = 15)+
+  labs(y='Marital_Status', fill='Marital_Status')
+
+
+
+
+
+```
+
+##Top shopper
+
+```{R,top shopper,message=FALSE,warning=FALSE}
+top_shopper <- cust_pur_city%>% mutate(avg_amount=amount/count)%>%arrange(desc(avg_amount))
+
+ggplot(top_shopper, aes(avg_amount))+
+  geom_density()+
+  geom_vline(xintercept=mean(top_shopper$avg_amount), linetype='dashed',col='red')+
+  geom_text(aes(x=mean(top_shopper$avg_amount), label= round(mean(top_shopper$avg_amount)), y=0.0002, col='red', size=5, hjust=0.8))+
+  theme(legend.position = 'none')
+
+```
+##Occupation
+```{R,occupation,message=FALSE,warning=FALSE}
+occu <- cust_pur_city[]%>%left_join(bf[,c(1,5)],by="User_ID")%>%distinct()
+
+##Q: Which occupation buy the most?
+
+occu_sum <- occu%>%group_by(Occupation)%>%summarise(amount=sum(amount), count=sum(count))%>%arrange(desc(amount))%>%mutate(percent=amount/sum(amount)*100)
+
+ggplot(occu_sum) +
+  geom_bar(stat='identity', aes(as.factor(reorder(Occupation,-amount)),percent, fill=as.factor(Occupation)))+
+  theme(legend.position = 'none')+
+  scale_y_continuous(label=comma)+
+  labs(x='occupation', y='percent', title='total purchase amount by occupation')
+
+sum(occu_sum$amount[1:5])/sum(occu_sum$amount)
+
+##info: occupation 4 buy the most and top 5 occupations contribute 52.5 % of the sales. 
+
+```
+
+#Apriori Algorithm
+```{R,Apriori, include=FALSE,message=FALSE,warning=FALSE}
+library(arules)
+library(grid)
+library(arulesViz)
+```
+
+
+
+# Data Preprocessing
+```{R,Data Preprocessing,message=FALSE,warning=FALSE}
+
+# Getting the dataset into the correct format
+
+test <- bf%>%select(User_ID,Product_ID)%>%
+  # Selecting the columns we will need
+  group_by(User_ID)%>%
+  # Grouping by "User_ID"
+  arrange(User_ID)%>%
+  # Arranging by "User_ID"
+  mutate(id=row_number())
+
+cust_prod <- bf%>%select(User_ID,Product_ID)%>%
+  # Selecting the columns we will need
+  group_by(User_ID)%>%
+  # Grouping by "User_ID"
+  arrange(User_ID)%>%
+  # Arranging by "User_ID"
+  mutate(id=row_number())%>%
+  # Defining a key column for each "Product_ID" and its corresponding "User_ID" (Must do this for spread() to work properly)
+  spread(User_ID,Product_ID)%>%
+  # Converting our dataset from tall to wide format, and grouping "Product_IDs" to their corresponding "User_ID"
+  t()
+  # Transposing the dataset from columns of "User_ID" to rows of "User_ID"
+  
+cust_prod <- cust_prod[-1,]
+# Now we can remove the Id row we created earlier for spread() to work correctly.
+str(cust_prod)
+
+####最後剩下的檔案，, customer_id 為row_id, col_id 是product_bought_x
+
+write.csv(cust_prod, file= 'customer_product.csv')
+customer_product <- read.transactions('customer_product.csv', sep=',', rm.duplicates = TRUE)
+####利用transaction func 讀取後的檔案，是以product_id 為col_name, customer_id 為row_id, 值為bool
+```
+
+```{R,message=FALSE,warning=FALSE}
+##checking if the result is right
+topSeller
+summary(customer_product)
+
+####The element length distribution 是被購買的次數, eg. 被買7次的product 有5種
+## info: the mean purchased time is 92.41, however the median is 54, right skewed. 
+
+itemFrequencyPlot(customer_product, topN=25)
+?itemFrequencyPlot
+
+```
+
+
+
+#Fit the model
+####
+The first value, lhs, corresponds to a grouping of items which the algorithm has pulled from the dataset.
+
+The second value, rhs, corresponds to the value predicted by apriori to be purchased with items in the "lhs" category.
+
+The third value, support is the number of transactions including that specific set of items divided by the total number of transactions. (As described earlier when we chose the parameters for Apriori.)
+
+The fourth value, confidence is the % chance in which a rule will be upheld.
+
+The fifth value, lift gives us the independance/dependence of a rule. It takes the confidence value and its relationship to the entire dataset into account.
+
+The sixth and final value, count is the number of times a rule occured during the implementation of Apriori on our data.
+```{r,fit the model,message=FALSE,warning=FALSE}
+rules <- apriori(data= customer_product, parameter= list(support=0.008, confidence= 0.8, maxtime= 0))
+rules2 <- apriori(data= customer_product, parameter= list(support=0.008, confidence= 0.75, maxtime= 0))
+
+#### maxtime = 0 will allow our algorithim to run until completion with no time limit
+
+##support = 0.008, confidence= 0.8
+inspect(sort(rules, by='lift'))
+plot(rules, method='graph')
+##7 rules
+
+##support = 0.008, confidence= 0.75
+inspect(sort(rules2, by='lift'))
+plot(rules2, method='graph', max=25)
+plot(rules2, method='grouped', max=25)
+##171 rules
+
+##interpretation: customer who bought P00221142,P00249642 bought P00221142,P00249642 76.19% of the time, given a support of 0.008.
+#The size of the bubbles represents the support value of the rule and the fill/color represents the lift.
+
+
+
+```
+

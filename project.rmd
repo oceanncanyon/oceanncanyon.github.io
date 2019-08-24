@@ -1,0 +1,68 @@
+---
+title: "Project"
+---
+
+__I am crazy about human behavior and that is why I love data science.__
+
+__With power of statiscal learning and real world marketer sense, __
+
+__numbers become the answer to business problems and ,more interesting part,__
+
+__tell the stories that consumers never tell by themselves. __
+ 
+###Here's some examples.
+
+#R:
+
+## [Apriori Modeling with R](project/Apriori_R.html)
+
+- __Data description:__ Trasactional Data of a retailer in black friday
+- __Data dimension :__ 537577 rows, 12 columns
+- __Algorithm & model:__  Using Apriori algorithm to conduct a "Also buy" model to enhance sales on Black Friday
+- __Also done:__  Explotary analytics, Data cleaning, Data visualization
+
+## [Survival regression (predictive life time value) with R](project/Survival_Model_R.html)
+
+- __Data description:__ A loyalty program data from a dressing retailer, containing demographic and actional data of each member.
+- __Data dimension :__ 6916 rows, 57 columns
+- __Algorithm & model:__  Using Survival regression to predict when will a consumer buy the product again.
+- __Also done:__  Explotary analytics, Data cleaning, K-means clustering
+
+## [Market Basket Analytics](project/MBA_R.html)
+
+- __Data description:__ A loyalty program data from a dressing retailer, containing demographic and actional data of each member.
+- __Data dimension :__ 6916 rows, 57 columns
+- __Algorithm & model:__  Using Logistic regression to answer the question " if consumer buy A, what is the probability he or she will also buy B"
+- __Also done:__  Data cleaning, Survival regression
+
+## [Explotary Analytics](project/XGboost_R.html)
+
+- __Data description:__ Detail data of houses sold in a city
+- __Data dimension :__ 2919 rows, 80 columns
+- __Algorithm & model:__  
+- __Also done:__  Explotary analytics, Data visualization, Data cleaning
+
+#Python
+
+## [Sentiment Analytics (Nature Language Processing)](project/python/Text Mining_NLP_python.html)
+
+- __Data description:__ A customer review dataset from an e-commerce company of female clothing, 
+- __Data dimension :__ 22628 rows, 13 columns
+- __Algorithm & model:__  N Grams, Naive Bayes, Vector machine
+- __Also done:__  Explotary analytics, Data cleaning, Data visualization
+
+## [Clustering Algorithms](project/python/Python clustering(Kmeans , TSNE, AggClu-Hierarchy, DBSCAN, MeanShift).html)
+
+- __Data description:__  A dataset containing demographic and financial data
+- __Data dimension :__ 200 rows, 13 columns
+- __Algorithm & model:__  K-mean, Hierachical Clustering (TSNE), Density Based Clustering (DBSCAN), Mean Shift
+- __Also done:__  Data visualization
+
+## [Explotary Analytics](project/python/Victoria Secret ( text data wrangling & EDA using Py).html)
+
+- __Data description:__ Female inner wearing product data from multiple online shops.
+- __Data dimension :__ 613143 rows, 14 columns
+- __Algorithm & model:__  
+- __Also done:__  Explotary analytics, Data cleaning, Data visualization, Text mining.
+
+

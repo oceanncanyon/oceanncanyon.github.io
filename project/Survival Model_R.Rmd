@@ -1,0 +1,486 @@
+---
+title: "Survival Regression"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    smooth_scroll: true
+    df_print: paged
+    theme: journal
+---
+
+
+
+```{r, include=FALSE,message=FALSE,warning=FALSE}
+#install.packages('survival')
+#install.packages('survminer')
+library(survminer)
+library(survival)
+library(dplyr)
+library(readr)
+#update.packages("survminer")
+library(knitr)
+
+
+#segData<-read_csv('/Users/warren/Desktop/UTD/19\ Spring/Predictive\ Analytics\ Using\ SAS/project/segment_final.csv')
+myData <- read_csv('/Users/warren/Desktop/UTD/19\ Spring/Predictive\ Analytics\ Using\ SAS/project/clean_Data\ with\ Cluster_V2.csv')
+attach(myData)
+table(myData$cluster)/nrow(myData)
+
+##myData$cluster <- segData$cluster
+myData$censored <- 0
+myData$censored[!is.na(myData$timeuntil_2)] <- 1
+
+# #為了符合之前的錯誤版本，所以做以下調整
+# myData$cluster[myData$cluster==2] <- 4
+# myData$cluster[myData$cluster==7] <- 2
+# write.csv(myData,file='clean_Data with Cluster_V2',row.names = FALSE)
+# ##
+
+myData <- myData[myData$cluster!=4,]
+myData$cluster[myData$cluster==5] <-4
+myData$cluster[myData$cluster==6] <-5
+
+seg1 <- myData[myData$cluster==1,]
+seg2 <- myData[myData$cluster==2,]
+seg3 <- myData[myData$cluster==3,]
+seg4 <- myData[myData$cluster==4,]
+seg5 <- myData[myData$cluster==5,]
+
+```
+
+
+
+#fit the model #seg1
+```{r, include=TRUE,message=FALSE,warning=FALSE}
+#create a survival object
+#Fit survival data using the Kaplan-Meier method
+surv_obj <- Surv(time=seg1$timeuntil_2, event=seg1$censored)
+
+###fit Survival Regression!!!
+surv_obj <- Surv(time=seg1$timeuntil_2, event=seg1$censored)
+
+sur_reg <- survreg(surv_obj ~ PRICE+DISCOUNT_AMT+AMT+QTY+age+educ+size_hh+`income cat`+TENURE+sales_pcnt+spring_pcnt+fall_pcnt+holiday_pcnt+bts_pcnt+clearance_pcnt+RETAIL+PROD_CATEGORY_COUNT+pcnt_w_knit_tops+is_redeemer+technical_occ+professinal_occ+sales_occ+officeadmin_occ, data=seg1,dist='weibull')
+
+summary(sur_reg)
+
+##Predict the value
+
+pred <-predict(sur_reg,newdata = seg1[is.na(seg1$timeuntil_2),])
+#predict func only generates the row with NA
+seg1$pred_2nd_purchased <- seg1$timeuntil_2
+seg1$pred_2nd_purchased[is.na(seg1$timeuntil_2)] <- pred
+seg1$pred_2nd_purchased
+
+pred <-predict(sur_reg,newdata = seg1[is.na(seg1$timeuntil_3),])
+seg1$pred_3rd_purchased <- seg1$timeuntil_3
+seg1$pred_3rd_purchased[is.na(seg1$timeuntil_3)] <- pred
+seg1$pred_3rd_purchased
+
+pred <-predict(sur_reg,newdata = seg1[is.na(seg1$timeuntil_4),])
+seg1$pred_4th_purchased <- seg1$timeuntil_4
+seg1$pred_4th_purchased[is.na(seg1$timeuntil_4)] <- pred
+seg1$pred_4th_purchased
+
+##Generating the Time Period, each period is 30 days.
+
+seg1$t1_buy <- 0
+seg1$t2_buy <- 0
+seg1$t3_buy <- 0
+seg1$t4_buy <- 0
+seg1$t5_buy <- 0
+seg1$t6_buy <- 0
+seg1$t7_buy <- 0
+seg1$t8_buy <- 0
+seg1$t9_buy <- 0
+seg1$t10_buy <- 0
+seg1$t11_buy <- 0
+seg1$t12_buy <- 0
+
+t_period <- c('t1_buy','t2_buy','t3_buy','t4_buy','t5_buy','t6_buy','t7_buy','t8_buy','t9_buy','t10_buy','t11_buy','t12_buy')
+
+##count when does the purchase happen
+x <- abs(seg1$pred_2nd_purchased)/30
+y <- abs(seg1$pred_3rd_purchased)/30
+z <- abs(seg1$pred_4th_purchased)/30
+ifelse(x-floor(x)>0, x <- floor(x+1), floor(x))
+ifelse(y-floor(y)>0, y <- floor(y+1), floor(y))
+ifelse(z-floor(z)>0, z <- floor(z+1), floor(z))
+
+
+for (i in 1:nrow(seg1)){
+  xi=x[i]
+  yi=y[i]
+  zi=z[i]
+  ifelse(xi<=12, seg1[i,t_period[xi]]<- 1, NA)
+  ifelse(xi+yi<=12, seg1[i,t_period[xi+yi]] <- 1, NA)
+  ifelse(xi+yi+zi<=12, seg1[i,t_period[xi+yi+zi]] <- 1, NA)
+}
+
+
+##check the total purchase of each time period
+plot(colSums(seg1[,t_period]), type='b', ylab='counts of purchase',xlab='+ months from now')
+
+nrow(seg1)*3
+sum(colSums(seg1[,t_period]))
+
+```
+#fit the model #seg2
+```{r, include=FALSE,message=FALSE,warning=FALSE}
+###fit Survival Regression!!!
+surv_obj <- Surv(time=seg2$timeuntil_2, event=seg2$censored)
+
+sur_reg <- survreg(surv_obj ~ PRICE+DISCOUNT_AMT+AMT+QTY+age+educ+size_hh+`income cat`+TENURE+sales_pcnt+spring_pcnt+fall_pcnt+holiday_pcnt+bts_pcnt+clearance_pcnt+RETAIL+PROD_CATEGORY_COUNT+pcnt_w_knit_tops+is_redeemer+technical_occ+professinal_occ+sales_occ+officeadmin_occ, data=seg2,dist='weibull')
+
+summary(sur_reg)
+
+##Predict the value
+
+pred <-predict(sur_reg,newdata = seg2[is.na(seg2$timeuntil_2),])
+#predict func only generates the row with NA
+seg2$pred_2nd_purchased <- seg2$timeuntil_2
+seg2$pred_2nd_purchased[is.na(seg2$timeuntil_2)] <- pred
+seg2$pred_2nd_purchased
+
+pred <-predict(sur_reg,newdata = seg2[is.na(seg2$timeuntil_3),])
+seg2$pred_3rd_purchased <- seg2$timeuntil_3
+seg2$pred_3rd_purchased[is.na(seg2$timeuntil_3)] <- pred
+seg2$pred_3rd_purchased
+
+pred <-predict(sur_reg,newdata = seg2[is.na(seg2$timeuntil_4),])
+seg2$pred_4th_purchased <- seg2$timeuntil_4
+seg2$pred_4th_purchased[is.na(seg2$timeuntil_4)] <- pred
+seg2$pred_4th_purchased
+
+##Generating the Time Period, each period is 30 days.
+
+seg2$t1_buy <- 0
+seg2$t2_buy <- 0
+seg2$t3_buy <- 0
+seg2$t4_buy <- 0
+seg2$t5_buy <- 0
+seg2$t6_buy <- 0
+seg2$t7_buy <- 0
+seg2$t8_buy <- 0
+seg2$t9_buy <- 0
+seg2$t10_buy <- 0
+seg2$t11_buy <- 0
+seg2$t12_buy <- 0
+
+t_period <- c('t1_buy','t2_buy','t3_buy','t4_buy','t5_buy','t6_buy','t7_buy','t8_buy','t9_buy','t10_buy','t11_buy','t12_buy')
+
+##count when does the purchase happen
+x <- abs(seg2$pred_2nd_purchased)/30
+y <- abs(seg2$pred_3rd_purchased)/30
+z <- abs(seg2$pred_4th_purchased)/30
+ifelse(x-floor(x)>0, x <- floor(x+1), floor(x))
+ifelse(y-floor(y)>0, y <- floor(y+1), floor(y))
+ifelse(z-floor(z)>0, z <- floor(z+1), floor(z))
+
+
+for (i in 1:nrow(seg2)){
+  xi=x[i]
+  yi=y[i]
+  zi=z[i]
+  ifelse(xi<=12, seg2[i,t_period[xi]]<- 1, NA)
+  ifelse(xi+yi<=12, seg2[i,t_period[xi+yi]] <- 1, NA)
+  ifelse(xi+yi+zi<=12, seg2[i,t_period[xi+yi+zi]] <- 1, NA)
+}
+
+
+
+##check the total purchase of each time period
+plot(colSums(seg2[,t_period]), type='b', ylab='counts of purchase',xlab='+ months from now')
+
+nrow(seg2)*3
+sum(colSums(seg2[,t_period]))
+
+
+seg2[,t_period]
+
+```
+
+#fit the model #seg3
+```{r, include=FALSE,message=FALSE,warning=FALSE}
+###fit Survival Regression!!!
+surv_obj <- Surv(time=seg3$timeuntil_2, event=seg3$censored)
+
+
+sur_reg <- survreg(surv_obj ~ PRICE+DISCOUNT_AMT+AMT+QTY+age+educ+size_hh+`income cat`+TENURE+sales_pcnt+spring_pcnt+fall_pcnt+holiday_pcnt+bts_pcnt+clearance_pcnt+RETAIL+PROD_CATEGORY_COUNT+pcnt_w_knit_tops+is_redeemer+technical_occ+professinal_occ+sales_occ+officeadmin_occ, data=seg3,dist='weibull')
+
+summary(sur_reg)
+
+##Predict the value
+
+pred <-predict(sur_reg,newdata = seg3[is.na(seg3$timeuntil_2),])
+#predict func only generates the row with NA
+seg3$pred_2nd_purchased <- seg3$timeuntil_2
+seg3$pred_2nd_purchased[is.na(seg3$timeuntil_2)] <- pred
+seg3$pred_2nd_purchased
+
+pred <-predict(sur_reg,newdata = seg3[is.na(seg3$timeuntil_3),])
+seg3$pred_3rd_purchased <- seg3$timeuntil_3
+seg3$pred_3rd_purchased[is.na(seg3$timeuntil_3)] <- pred
+seg3$pred_3rd_purchased
+
+pred <-predict(sur_reg,newdata = seg3[is.na(seg3$timeuntil_4),])
+seg3$pred_4th_purchased <- seg3$timeuntil_4
+seg3$pred_4th_purchased[is.na(seg3$timeuntil_4)] <- pred
+seg3$pred_4th_purchased
+
+##Generating the Time Period, each period is 30 days.
+
+seg3$t1_buy <- 0
+seg3$t2_buy <- 0
+seg3$t3_buy <- 0
+seg3$t4_buy <- 0
+seg3$t5_buy <- 0
+seg3$t6_buy <- 0
+seg3$t7_buy <- 0
+seg3$t8_buy <- 0
+seg3$t9_buy <- 0
+seg3$t10_buy <- 0
+seg3$t11_buy <- 0
+seg3$t12_buy <- 0
+
+t_period <- c('t1_buy','t2_buy','t3_buy','t4_buy','t5_buy','t6_buy','t7_buy','t8_buy','t9_buy','t10_buy','t11_buy','t12_buy')
+
+##count when does the purchase happen
+x <- abs(seg3$pred_2nd_purchased)/30
+y <- abs(seg3$pred_3rd_purchased)/30
+z <- abs(seg3$pred_4th_purchased)/30
+ifelse(x-floor(x)>0, x <- floor(x+1), floor(x))
+ifelse(y-floor(y)>0, y <- floor(y+1), floor(y))
+ifelse(z-floor(z)>0, z <- floor(z+1), floor(z))
+
+
+for (i in 1:nrow(seg3)){
+  xi=x[i]
+  yi=y[i]
+  zi=z[i]
+  ifelse(xi<=12, seg3[i,t_period[xi]]<- 1, NA)
+  ifelse(xi+yi<=12, seg3[i,t_period[xi+yi]] <- 1, NA)
+  ifelse(xi+yi+zi<=12, seg3[i,t_period[xi+yi+zi]] <- 1, NA)
+}
+
+
+
+##check the total purchase of each time period
+plot(colSums(seg3[,t_period]), type='b', ylab='counts of purchase',xlab='+ months from now')
+
+nrow(seg3)*3
+sum(colSums(seg3[,t_period]))
+
+
+seg3[,t_period]
+
+```
+
+#fit the model #seg4
+```{r, include=FALSE,message=FALSE,warning=FALSE}
+###fit Survival Regression!!!
+surv_obj <- Surv(time=seg4$timeuntil_2, event=seg4$censored)
+
+
+sur_reg <- survreg(surv_obj ~ PRICE+DISCOUNT_AMT+AMT+QTY+age+educ+size_hh+`income cat`+TENURE+sales_pcnt+spring_pcnt+fall_pcnt+holiday_pcnt+bts_pcnt+clearance_pcnt+RETAIL+PROD_CATEGORY_COUNT+pcnt_w_knit_tops+is_redeemer+technical_occ+professinal_occ+sales_occ+officeadmin_occ, data=seg4,dist='weibull')
+
+summary(sur_reg)
+
+##Predict the value
+
+pred <-predict(sur_reg,newdata = seg4[is.na(seg4$timeuntil_2),])
+#predict func only generates the row with NA
+seg4$pred_2nd_purchased <- seg4$timeuntil_2
+seg4$pred_2nd_purchased[is.na(seg4$timeuntil_2)] <- pred
+seg4$pred_2nd_purchased
+
+pred <-predict(sur_reg,newdata = seg4[is.na(seg4$timeuntil_3),])
+seg4$pred_3rd_purchased <- seg4$timeuntil_3
+seg4$pred_3rd_purchased[is.na(seg4$timeuntil_3)] <- pred
+seg4$pred_3rd_purchased
+
+pred <-predict(sur_reg,newdata = seg4[is.na(seg4$timeuntil_4),])
+seg4$pred_4th_purchased <- seg4$timeuntil_4
+seg4$pred_4th_purchased[is.na(seg4$timeuntil_4)] <- pred
+seg4$pred_4th_purchased
+
+##Generating the Time Period, each period is 30 days.
+
+seg4$t1_buy <- 0
+seg4$t2_buy <- 0
+seg4$t3_buy <- 0
+seg4$t4_buy <- 0
+seg4$t5_buy <- 0
+seg4$t6_buy <- 0
+seg4$t7_buy <- 0
+seg4$t8_buy <- 0
+seg4$t9_buy <- 0
+seg4$t10_buy <- 0
+seg4$t11_buy <- 0
+seg4$t12_buy <- 0
+
+t_period <- c('t1_buy','t2_buy','t3_buy','t4_buy','t5_buy','t6_buy','t7_buy','t8_buy','t9_buy','t10_buy','t11_buy','t12_buy')
+
+##count when does the purchase happen
+x <- abs(seg4$pred_2nd_purchased)/30
+y <- abs(seg4$pred_3rd_purchased)/30
+z <- abs(seg4$pred_4th_purchased)/30
+ifelse(x-floor(x)>0, x <- floor(x+1), floor(x))
+ifelse(y-floor(y)>0, y <- floor(y+1), floor(y))
+ifelse(z-floor(z)>0, z <- floor(z+1), floor(z))
+
+
+for (i in 1:nrow(seg4)){
+  xi=x[i]
+  yi=y[i]
+  zi=z[i]
+  ifelse(xi<=12, seg4[i,t_period[xi]]<- 1, NA)
+  ifelse(xi+yi<=12, seg4[i,t_period[xi+yi]] <- 1, NA)
+  ifelse(xi+yi+zi<=12, seg4[i,t_period[xi+yi+zi]] <- 1, NA)
+}
+
+
+
+##check the total purchase of each time period
+plot(colSums(seg4[,t_period]), type='b', ylab='counts of purchase',xlab='+ months from now')
+
+nrow(seg4)*3
+sum(colSums(seg4[,t_period]))
+
+
+seg4[,t_period]
+
+```
+
+#fit the model #seg5
+```{r, include=FALSE,message=FALSE,warning=FALSE}
+###fit Survival Regression!!!
+surv_obj <- Surv(time=seg5$timeuntil_2, event=seg5$censored)
+
+
+sur_reg <- survreg(surv_obj ~ PRICE+DISCOUNT_AMT+AMT+QTY+age+educ+size_hh+`income cat`+TENURE+sales_pcnt+spring_pcnt+fall_pcnt+holiday_pcnt+bts_pcnt+clearance_pcnt+RETAIL+PROD_CATEGORY_COUNT+pcnt_w_knit_tops+is_redeemer+technical_occ+professinal_occ+sales_occ+officeadmin_occ, data=seg5,dist='weibull')
+
+summary(sur_reg)
+
+##Predict the value
+
+pred <-predict(sur_reg,newdata = seg5[is.na(seg5$timeuntil_2),])
+#predict func only generates the row with NA
+seg5$pred_2nd_purchased <- seg5$timeuntil_2
+seg5$pred_2nd_purchased[is.na(seg5$timeuntil_2)] <- pred
+seg5$pred_2nd_purchased
+
+pred <-predict(sur_reg,newdata = seg5[is.na(seg5$timeuntil_3),])
+seg5$pred_3rd_purchased <- seg5$timeuntil_3
+seg5$pred_3rd_purchased[is.na(seg5$timeuntil_3)] <- pred
+seg5$pred_3rd_purchased
+
+pred <-predict(sur_reg,newdata = seg5[is.na(seg5$timeuntil_4),])
+seg5$pred_4th_purchased <- seg5$timeuntil_4
+seg5$pred_4th_purchased[is.na(seg5$timeuntil_4)] <- pred
+seg5$pred_4th_purchased
+
+##Generating the Time Period, each period is 30 days.
+
+seg5$t1_buy <- 0
+seg5$t2_buy <- 0
+seg5$t3_buy <- 0
+seg5$t4_buy <- 0
+seg5$t5_buy <- 0
+seg5$t6_buy <- 0
+seg5$t7_buy <- 0
+seg5$t8_buy <- 0
+seg5$t9_buy <- 0
+seg5$t10_buy <- 0
+seg5$t11_buy <- 0
+seg5$t12_buy <- 0
+
+t_period <- c('t1_buy','t2_buy','t3_buy','t4_buy','t5_buy','t6_buy','t7_buy','t8_buy','t9_buy','t10_buy','t11_buy','t12_buy')
+
+##count when does the purchase happen
+x <- abs(seg5$pred_2nd_purchased)/30
+y <- abs(seg5$pred_3rd_purchased)/30
+z <- abs(seg5$pred_4th_purchased)/30
+ifelse(x-floor(x)>0, x <- floor(x+1), floor(x))
+ifelse(y-floor(y)>0, y <- floor(y+1), floor(y))
+ifelse(z-floor(z)>0, z <- floor(z+1), floor(z))
+
+
+for (i in 1:nrow(seg5)){
+  xi=x[i]
+  yi=y[i]
+  zi=z[i]
+  ifelse(xi<=12, seg5[i,t_period[xi]]<- 1, NA)
+  ifelse(xi+yi<=12, seg5[i,t_period[xi+yi]] <- 1, NA)
+  ifelse(xi+yi+zi<=12, seg5[i,t_period[xi+yi+zi]] <- 1, NA)
+}
+
+
+
+##check the total purchase of each time period
+plot(colSums(seg5[,t_period]), type='b', ylab='counts of purchase',xlab='+ months from now')
+
+nrow(seg5)*3
+sum(colSums(seg5[,t_period]))
+
+
+seg5[,t_period]
+
+```
+
+
+#Analyzing it
+```{r, Analytics,message=FALSE,warning=FALSE}
+segData <- rbind(seg1,seg2,seg3,seg4,seg5)
+plot(colSums(segData[,t_period]), type='b', ylab='counts of predicted purchase',xlab='+ months from now', main='total')
+plot(colSums(seg1[,t_period]), type='b', ylab='counts of predicted purchase',xlab='+ months from now', main='seg1')
+plot(colSums(seg2[,t_period]), type='b', ylab='counts of predicted purchase',xlab='+ months from now', main='seg2')
+plot(colSums(seg3[,t_period]), type='b', ylab='counts of predicted purchase',xlab='+ months from now', main='seg3')
+plot(colSums(seg4[,t_period]), type='b', ylab='counts of predicted purchase',xlab='+ months from now', main='seg4')
+plot(colSums(seg5[,t_period]), type='b', ylab='counts of predicted purchase',xlab='+ months from now', main='seg5')
+
+seg_Name <- c('seg1','seg2','seg3','seg4','seg5','seg6')
+
+table(segData$cluster)
+
+for (i in 1:6){
+  cat(seg_Name[i], 'prospect accounts for in ratio of total (from t1 to t12) ',':','\n')
+  cat(round(colSums(segData[segData$cluster==i,t_period])/colSums(segData[,t_period]),digit=4))
+  cat('\n\n')
+  
+  cat(seg_Name[i], 'abnomalness compare to it should be (from t1 to t12)',':','\n')
+  cat(round(colSums(segData[segData$cluster==i,t_period])/sum(segData$cluster==i)/(colSums(segData[,t_period])/nrow(segData)),digit=4))
+  cat('\n_____________________________________________________________________________________\n')
+}
+
+
+
+for (i in 1:6){
+  cat(seg_Name[i], ' avg revenue',':')
+  cat(mean(myData$AMT[myData$cluster==i&!is.na(myData$AMT)]),'\n')
+  
+  cat(seg_Name[i], ' consists % in total revenue',':')
+  cat(colSums(myData[myData$cluster==i,'AMT'])/sum(myData$AMT),'\n')
+  
+  cat(seg_Name[i], ' avg discount',':')
+  cat(mean(myData$DISCOUNT_AMT[myData$cluster==i]),'\n')
+  
+  cat(seg_Name[i], ' consists % in total discount',':')
+  cat(colSums(myData[myData$cluster==i,'DISCOUNT_AMT'])/sum(myData$DISCOUNT_AMT),'\n')
+  
+  cat(seg_Name[i], ' avg real days untill 2nd purchase',':')
+  cat(mean(myData$timeuntil_2[myData$cluster==i&!is.na(myData$timeuntil_2)]),'\n')
+  
+  cat(seg_Name[i], ' avg predicted days untill 2nd purchase',':')
+  cat(mean(segData$pred_2nd_purchased[segData$cluster==i]),'\n')
+  
+  cat(seg_Name[i], ' avg predicted days untill 3rd purchase',':')
+  cat(mean(segData$pred_3rd_purchased[segData$cluster==i]),'\n')
+  
+  cat(seg_Name[i], ' avg predicted days untill 4th purchase',':')
+  cat(mean(segData$pred_4th_purchased[segData$cluster==i]),'\n\n')
+  }
+
+
+```
+

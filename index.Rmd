@@ -2,4 +2,15 @@
 title: "Warren Wang"
 ---
 
-Hello, World!
+###__<font color='lightcoral",color,"lightcoral'>Here comes a marketer knows data!</font>__
+
+I am a __marketing analyst__ with 4 years work experience in marketing agency, 
+
+where I organized off-line campaign and analyzed the outcome.
+
+I then pursue my master in business analytics in USA and focus on __data science implemented on marketing__,
+
+through conducting __machine learning__ on transactional data, text data and etc. to uncover __consumer behavior__.
+
+
+![](images/bio-photo.jpg)

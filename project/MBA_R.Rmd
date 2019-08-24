@@ -1,0 +1,441 @@
+---
+title: "Market Basket Analytics"
+author: "Warren Wang"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    smooth_scroll: true
+    df_print: paged
+    theme: journal
+---
+
+```{r, include=FALSE,message=FALSE,warning=FALSE}
+# "include=FALSE" - Not to include the codes and output of this chunk in the output HTML file.
+Loadlibraries=function(){
+library(tidyverse)
+library(modelr)
+library(nycflights13)
+library(lubridate)
+print("The libraries have been loaded.")
+}
+
+Loadlibraries()
+```
+##Wrangling
+Labeling the data for later use.
+```{R,Wrangling,message=FALSE,warning=FALSE}
+
+myData <- read.csv("/Users/warren/Desktop/UTD/19\ Spring/Predictive\ Analytics\ Using\ SAS/project/clean_Data\ with\ Cluster_V2.csv")
+
+#####
+myData$buy_m_casual_bottoms <- 0
+myData$buy_m_knits <- 0
+myData$buy_m_shirts <- 0
+myData$buy_m_suits <- 0
+myData$buy_w_denim <- 0
+myData$buy_w_dress <- 0
+myData$buy_w_knit_tops <- 0
+myData$buy_w_pants <- 0
+myData$buy_w_sweaters <- 0
+myData$buy_w_woven_tops <- 0
+myData$buy_m_prod <- 0
+myData$buy_w_prod <- 0
+
+pcnt <- names(myData[,grep('pcnt+',colnames(myData))])[-c(1,2,3,4,5,6)]
+buy <- colnames(myData)[58:69]
+#####
+
+for (i in 1:length(buy)){
+  idx=myData[,pcnt[i]]>0
+  myData[idx,buy[i]] <- 1
+}
+```
+
+##Coefficient of correlation
+Have a glimpse on correlation coefficient
+```{r,Coefficient of correlation}
+summary(myData[,buy])
+
+cor_numVar<-cor(myData[,buy],use='pairwise.complete.obs')
+corrplot::corrplot.mixed(cor_numVar,tl.col='black',tl.pos='lt',tl.cex=0.7,cl.cex=0.7,number.cex=0.7)
+
+
+#Assign subset by cluster label 
+
+seg1 <- myData[myData$cluster==1,]
+seg2 <- myData[myData$cluster==2,]
+seg3 <- myData[myData$cluster==3,]
+seg4 <- myData[myData$cluster==4,]
+seg5 <- myData[myData$cluster==5,]
+
+```
+
+##MBA_model_total
+```{r,MBA_model_total,message=FALSE,warning=FALSE}
+
+#Logistic regression
+
+mba_m_casual_bottoms<- glm(buy_m_casual_bottoms~buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_m_knits<- glm(buy_m_knits~buy_m_casual_bottoms+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_m_shirts<- glm(buy_m_shirts~buy_m_casual_bottoms+buy_m_knits+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_m_suits<- glm(buy_m_suits~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_w_denim<- glm(buy_w_denim~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_w_dress<- glm(buy_w_dress~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_w_knit_tops<- glm(buy_w_knit_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_w_pants<- glm(buy_w_pants~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_w_sweaters<- glm(buy_w_sweaters~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_w_woven_tops<- glm(buy_w_woven_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_m_prod+buy_w_prod, family = binomial,data=myData)
+
+mba_m_prod<- glm(buy_m_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_w_prod, family = binomial,data=myData)
+
+mba_w_prod<- glm(buy_w_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod, family = binomial,data=myData)
+
+
+##coef_effect
+m_casual_bottoms_effect <- (round(exp(mba_m_casual_bottoms$coefficients[-1]),4)-1)*100
+m_knits_effect <- (round(exp(mba_m_knits$coefficients[-1]),4)-1)*100
+m_prod_effect <- (round(exp(mba_m_prod$coefficients[-1]),4)-1)*100
+m_shirts_effect <- (round(exp(mba_m_shirts$coefficients[-1]),4)-1)*100
+m_suits_effect <- (round(exp(mba_m_suits$coefficients[-1]),4)-1)*100
+w_denim_effect <- (round(exp(mba_w_denim$coefficients[-1]),4)-1)*100
+w_dress_effect <- (round(exp(mba_w_dress$coefficients[-1]),4)-1)*100
+w_knit_tops_effect <- (round(exp(mba_w_knit_tops$coefficients[-1]),4)-1)*100
+w_pants_effect <- (round(exp(mba_w_pants$coefficients[-1]),4)-1)*100
+w_sweaters_effect <- (round(exp(mba_w_sweaters$coefficients[-1]),4)-1)*100
+w_woven_tops_effect <- (round(exp(mba_w_woven_tops$coefficients[-1]),4)-1)*100
+w_prod_effect <- (round(exp(mba_w_prod$coefficients[-1]),4)-1)*100
+
+
+
+category <- c("m_casual_bottoms","m_knits","m_prod","m_shirts","m_suits","w_denim","w_dress","w_knit_tops","w_pants","w_sweaters","w_woven_tops","w_prod")
+wrap <- c(m_casual_bottoms_effect,m_knits_effect,m_prod_effect,m_shirts_effect,m_suits_effect,w_denim_effect,w_dress_effect,w_knit_tops_effect,w_pants_effect,w_sweaters_effect,w_woven_tops_effect,w_prod_effect)
+
+idx <- seq(1:11)
+for (i in 1:length(category)){
+  cat("the probability of buying   ",category[i], "   changes in %, if consumers:\n" )
+  print(wrap[idx])
+  cat("\n\n\n")
+  idx <- idx+11
+}
+
+
+```
+
+
+##seg1
+```{r,seg1,message=FALSE,warning=FALSE}
+
+mba_m_casual_bottoms<- glm(buy_m_casual_bottoms~buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_m_knits<- glm(buy_m_knits~buy_m_casual_bottoms+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_m_shirts<- glm(buy_m_shirts~buy_m_casual_bottoms+buy_m_knits+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_m_suits<- glm(buy_m_suits~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_w_denim<- glm(buy_w_denim~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_w_dress<- glm(buy_w_dress~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_w_knit_tops<- glm(buy_w_knit_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_w_pants<- glm(buy_w_pants~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_w_sweaters<- glm(buy_w_sweaters~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_w_woven_tops<- glm(buy_w_woven_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_m_prod+buy_w_prod, family = binomial,data=seg1)
+
+mba_m_prod<- glm(buy_m_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_w_prod, family = binomial,data=seg1)
+
+mba_w_prod<- glm(buy_w_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod, family = binomial,data=seg1)
+
+
+##coef_effect
+m_casual_bottoms_effect <- (round(exp(mba_m_casual_bottoms$coefficients[-1]),4)-1)*100
+m_knits_effect <- (round(exp(mba_m_knits$coefficients[-1]),4)-1)*100
+m_prod_effect <- (round(exp(mba_m_prod$coefficients[-1]),4)-1)*100
+m_shirts_effect <- (round(exp(mba_m_shirts$coefficients[-1]),4)-1)*100
+m_suits_effect <- (round(exp(mba_m_suits$coefficients[-1]),4)-1)*100
+w_denim_effect <- (round(exp(mba_w_denim$coefficients[-1]),4)-1)*100
+w_dress_effect <- (round(exp(mba_w_dress$coefficients[-1]),4)-1)*100
+w_knit_tops_effect <- (round(exp(mba_w_knit_tops$coefficients[-1]),4)-1)*100
+w_pants_effect <- (round(exp(mba_w_pants$coefficients[-1]),4)-1)*100
+w_sweaters_effect <- (round(exp(mba_w_sweaters$coefficients[-1]),4)-1)*100
+w_woven_tops_effect <- (round(exp(mba_w_woven_tops$coefficients[-1]),4)-1)*100
+w_prod_effect <- (round(exp(mba_w_prod$coefficients[-1]),4)-1)*100
+
+
+
+category <- c("m_casual_bottoms","m_knits","m_prod","m_shirts","m_suits","w_denim","w_dress","w_knit_tops","w_pants","w_sweaters","w_woven_tops","w_prod")
+wrap <- c(m_casual_bottoms_effect,m_knits_effect,m_prod_effect,m_shirts_effect,m_suits_effect,w_denim_effect,w_dress_effect,w_knit_tops_effect,w_pants_effect,w_sweaters_effect,w_woven_tops_effect,w_prod_effect)
+
+idx <- seq(1:11)
+for (i in 1:length(category)){
+  cat("the probability of buying   ",category[i], "   changes in %, if consumers:\n" )
+  print(wrap[idx])
+  cat("\n\n\n")
+  idx <- idx+11
+}
+
+corrplot::corrplot.mixed(cor(seg1[,buy],use='pairwise.complete.obs'),tl.col='black',tl.pos='lt',tl.cex=0.7,cl.cex=0.7,number.cex=0.7)
+
+
+```
+
+##seg2
+```{r,seg2,message=FALSE,warning=FALSE}
+
+mba_m_casual_bottoms<- glm(buy_m_casual_bottoms~buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_m_knits<- glm(buy_m_knits~buy_m_casual_bottoms+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_m_shirts<- glm(buy_m_shirts~buy_m_casual_bottoms+buy_m_knits+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_m_suits<- glm(buy_m_suits~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_w_denim<- glm(buy_w_denim~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_w_dress<- glm(buy_w_dress~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_w_knit_tops<- glm(buy_w_knit_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_w_pants<- glm(buy_w_pants~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_w_sweaters<- glm(buy_w_sweaters~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_w_woven_tops<- glm(buy_w_woven_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_m_prod+buy_w_prod, family = binomial,data=seg2)
+
+mba_m_prod<- glm(buy_m_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_w_prod, family = binomial,data=seg2)
+
+mba_w_prod<- glm(buy_w_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod, family = binomial,data=seg2)
+
+
+##coef_effect
+##coef_effect
+m_casual_bottoms_effect <- (round(exp(mba_m_casual_bottoms$coefficients[-1]),4)-1)*100
+m_knits_effect <- (round(exp(mba_m_knits$coefficients[-1]),4)-1)*100
+m_prod_effect <- (round(exp(mba_m_prod$coefficients[-1]),4)-1)*100
+m_shirts_effect <- (round(exp(mba_m_shirts$coefficients[-1]),4)-1)*100
+m_suits_effect <- (round(exp(mba_m_suits$coefficients[-1]),4)-1)*100
+w_denim_effect <- (round(exp(mba_w_denim$coefficients[-1]),4)-1)*100
+w_dress_effect <- (round(exp(mba_w_dress$coefficients[-1]),4)-1)*100
+w_knit_tops_effect <- (round(exp(mba_w_knit_tops$coefficients[-1]),4)-1)*100
+w_pants_effect <- (round(exp(mba_w_pants$coefficients[-1]),4)-1)*100
+w_sweaters_effect <- (round(exp(mba_w_sweaters$coefficients[-1]),4)-1)*100
+w_woven_tops_effect <- (round(exp(mba_w_woven_tops$coefficients[-1]),4)-1)*100
+w_prod_effect <- (round(exp(mba_w_prod$coefficients[-1]),4)-1)*100
+
+
+
+category <- c("m_casual_bottoms","m_knits","m_prod","m_shirts","m_suits","w_denim","w_dress","w_knit_tops","w_pants","w_sweaters","w_woven_tops","w_prod")
+wrap <- c(m_casual_bottoms_effect,m_knits_effect,m_prod_effect,m_shirts_effect,m_suits_effect,w_denim_effect,w_dress_effect,w_knit_tops_effect,w_pants_effect,w_sweaters_effect,w_woven_tops_effect,w_prod_effect)
+
+idx <- seq(1:11)
+for (i in 1:length(category)){
+  cat("the probability of buying   ",category[i], "   changes in %, if consumers:\n" )
+  print(wrap[idx])
+  cat("\n\n\n")
+  idx <- idx+11
+}
+
+corrplot::corrplot.mixed(cor(seg2[,buy],use='pairwise.complete.obs'),tl.col='black',tl.pos='lt',tl.cex=0.7,cl.cex=0.7,number.cex=0.7)
+
+
+```
+
+##seg3
+```{r,seg3,message=FALSE,warning=FALSE}
+
+mba_m_casual_bottoms<- glm(buy_m_casual_bottoms~buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_m_knits<- glm(buy_m_knits~buy_m_casual_bottoms+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_m_shirts<- glm(buy_m_shirts~buy_m_casual_bottoms+buy_m_knits+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_m_suits<- glm(buy_m_suits~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_w_denim<- glm(buy_w_denim~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_w_dress<- glm(buy_w_dress~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_w_knit_tops<- glm(buy_w_knit_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_w_pants<- glm(buy_w_pants~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_w_sweaters<- glm(buy_w_sweaters~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_w_woven_tops<- glm(buy_w_woven_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_m_prod+buy_w_prod, family = binomial,data=seg3)
+
+mba_m_prod<- glm(buy_m_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_w_prod, family = binomial,data=seg3)
+
+mba_w_prod<- glm(buy_w_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod, family = binomial,data=seg3)
+
+
+##coef_effect
+##coef_effect
+m_casual_bottoms_effect <- (round(exp(mba_m_casual_bottoms$coefficients[-1]),4)-1)*100
+m_knits_effect <- (round(exp(mba_m_knits$coefficients[-1]),4)-1)*100
+m_prod_effect <- (round(exp(mba_m_prod$coefficients[-1]),4)-1)*100
+m_shirts_effect <- (round(exp(mba_m_shirts$coefficients[-1]),4)-1)*100
+m_suits_effect <- (round(exp(mba_m_suits$coefficients[-1]),4)-1)*100
+w_denim_effect <- (round(exp(mba_w_denim$coefficients[-1]),4)-1)*100
+w_dress_effect <- (round(exp(mba_w_dress$coefficients[-1]),4)-1)*100
+w_knit_tops_effect <- (round(exp(mba_w_knit_tops$coefficients[-1]),4)-1)*100
+w_pants_effect <- (round(exp(mba_w_pants$coefficients[-1]),4)-1)*100
+w_sweaters_effect <- (round(exp(mba_w_sweaters$coefficients[-1]),4)-1)*100
+w_woven_tops_effect <- (round(exp(mba_w_woven_tops$coefficients[-1]),4)-1)*100
+w_prod_effect <- (round(exp(mba_w_prod$coefficients[-1]),4)-1)*100
+
+
+
+category <- c("m_casual_bottoms","m_knits","m_prod","m_shirts","m_suits","w_denim","w_dress","w_knit_tops","w_pants","w_sweaters","w_woven_tops","w_prod")
+wrap <- c(m_casual_bottoms_effect,m_knits_effect,m_prod_effect,m_shirts_effect,m_suits_effect,w_denim_effect,w_dress_effect,w_knit_tops_effect,w_pants_effect,w_sweaters_effect,w_woven_tops_effect,w_prod_effect)
+
+idx <- seq(1:11)
+for (i in 1:length(category)){
+  cat("the probability of buying   ",category[i], "   changes in %, if consumers:\n" )
+  print(wrap[idx])
+  cat("\n\n\n")
+  idx <- idx+11
+}
+
+corrplot::corrplot.mixed(cor(seg3[,buy],use='pairwise.complete.obs'),tl.col='black',tl.pos='lt',tl.cex=0.7,cl.cex=0.7,number.cex=0.7)
+
+
+```
+
+
+##seg4
+```{r,seg4,message=FALSE,warning=FALSE}
+
+mba_m_casual_bottoms<- glm(buy_m_casual_bottoms~buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_m_knits<- glm(buy_m_knits~buy_m_casual_bottoms+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_m_shirts<- glm(buy_m_shirts~buy_m_casual_bottoms+buy_m_knits+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_m_suits<- glm(buy_m_suits~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_w_denim<- glm(buy_w_denim~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_w_dress<- glm(buy_w_dress~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_w_knit_tops<- glm(buy_w_knit_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_w_pants<- glm(buy_w_pants~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_w_sweaters<- glm(buy_w_sweaters~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_w_woven_tops<- glm(buy_w_woven_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_m_prod+buy_w_prod, family = binomial,data=seg4)
+
+mba_m_prod<- glm(buy_m_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_w_prod, family = binomial,data=seg4)
+
+mba_w_prod<- glm(buy_w_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod, family = binomial,data=seg4)
+
+
+##coef_effect
+##coef_effect
+m_casual_bottoms_effect <- (round(exp(mba_m_casual_bottoms$coefficients[-1]),4)-1)*100
+m_knits_effect <- (round(exp(mba_m_knits$coefficients[-1]),4)-1)*100
+m_prod_effect <- (round(exp(mba_m_prod$coefficients[-1]),4)-1)*100
+m_shirts_effect <- (round(exp(mba_m_shirts$coefficients[-1]),4)-1)*100
+m_suits_effect <- (round(exp(mba_m_suits$coefficients[-1]),4)-1)*100
+w_denim_effect <- (round(exp(mba_w_denim$coefficients[-1]),4)-1)*100
+w_dress_effect <- (round(exp(mba_w_dress$coefficients[-1]),4)-1)*100
+w_knit_tops_effect <- (round(exp(mba_w_knit_tops$coefficients[-1]),4)-1)*100
+w_pants_effect <- (round(exp(mba_w_pants$coefficients[-1]),4)-1)*100
+w_sweaters_effect <- (round(exp(mba_w_sweaters$coefficients[-1]),4)-1)*100
+w_woven_tops_effect <- (round(exp(mba_w_woven_tops$coefficients[-1]),4)-1)*100
+w_prod_effect <- (round(exp(mba_w_prod$coefficients[-1]),4)-1)*100
+
+
+
+category <- c("m_casual_bottoms","m_knits","m_prod","m_shirts","m_suits","w_denim","w_dress","w_knit_tops","w_pants","w_sweaters","w_woven_tops","w_prod")
+wrap <- c(m_casual_bottoms_effect,m_knits_effect,m_prod_effect,m_shirts_effect,m_suits_effect,w_denim_effect,w_dress_effect,w_knit_tops_effect,w_pants_effect,w_sweaters_effect,w_woven_tops_effect,w_prod_effect)
+
+idx <- seq(1:11)
+for (i in 1:length(category)){
+  cat("the probability of buying   ",category[i], "   changes in %, if consumers:\n" )
+  print(wrap[idx])
+  cat("\n\n\n")
+  idx <- idx+11
+}
+
+corrplot::corrplot.mixed(cor(seg4[,buy],use='pairwise.complete.obs'),tl.col='black',tl.pos='lt',tl.cex=0.7,cl.cex=0.7,number.cex=0.7)
+
+```
+
+
+
+##seg5
+```{r,seg5,message=FALSE,warning=FALSE}
+
+mba_m_casual_bottoms<- glm(buy_m_casual_bottoms~buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_m_knits<- glm(buy_m_knits~buy_m_casual_bottoms+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_m_shirts<- glm(buy_m_shirts~buy_m_casual_bottoms+buy_m_knits+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_m_suits<- glm(buy_m_suits~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_w_denim<- glm(buy_w_denim~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_w_dress<- glm(buy_w_dress~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_w_knit_tops<- glm(buy_w_knit_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_w_pants<- glm(buy_w_pants~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_sweaters+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_w_sweaters<- glm(buy_w_sweaters~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_woven_tops+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_w_woven_tops<- glm(buy_w_woven_tops~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_m_prod+buy_w_prod, family = binomial,data=seg5)
+
+mba_m_prod<- glm(buy_m_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_w_prod, family = binomial,data=seg5)
+
+mba_w_prod<- glm(buy_w_prod~buy_m_casual_bottoms+buy_m_knits+buy_m_shirts+buy_m_suits+buy_w_denim+buy_w_dress+buy_w_knit_tops+buy_w_pants+buy_w_sweaters+buy_w_woven_tops+buy_m_prod, family = binomial,data=seg5)
+
+
+##coef_effect
+m_casual_bottoms_effect <- (round(exp(mba_m_casual_bottoms$coefficients[-1]),4)-1)*100
+m_knits_effect <- (round(exp(mba_m_knits$coefficients[-1]),4)-1)*100
+m_prod_effect <- (round(exp(mba_m_prod$coefficients[-1]),4)-1)*100
+m_shirts_effect <- (round(exp(mba_m_shirts$coefficients[-1]),4)-1)*100
+m_suits_effect <- (round(exp(mba_m_suits$coefficients[-1]),4)-1)*100
+w_denim_effect <- (round(exp(mba_w_denim$coefficients[-1]),4)-1)*100
+w_dress_effect <- (round(exp(mba_w_dress$coefficients[-1]),4)-1)*100
+w_knit_tops_effect <- (round(exp(mba_w_knit_tops$coefficients[-1]),4)-1)*100
+w_pants_effect <- (round(exp(mba_w_pants$coefficients[-1]),4)-1)*100
+w_sweaters_effect <- (round(exp(mba_w_sweaters$coefficients[-1]),4)-1)*100
+w_woven_tops_effect <- (round(exp(mba_w_woven_tops$coefficients[-1]),4)-1)*100
+w_prod_effect <- (round(exp(mba_w_prod$coefficients[-1]),4)-1)*100
+
+
+
+category <- c("m_casual_bottoms","m_knits","m_prod","m_shirts","m_suits","w_denim","w_dress","w_knit_tops","w_pants","w_sweaters","w_woven_tops","w_prod")
+wrap <- c(m_casual_bottoms_effect,m_knits_effect,m_prod_effect,m_shirts_effect,m_suits_effect,w_denim_effect,w_dress_effect,w_knit_tops_effect,w_pants_effect,w_sweaters_effect,w_woven_tops_effect,w_prod_effect)
+
+idx <- seq(1:11)
+for (i in 1:length(category)){
+  cat("the probability of buying   ",category[i], "   changes in %, if consumers:\n" )
+  print(wrap[idx])
+  cat("\n\n\n")
+  idx <- idx+11
+}
+
+corrplot::corrplot.mixed(cor(seg5[,buy],use='pairwise.complete.obs'),tl.col='black',tl.pos='lt',tl.cex=0.7,cl.cex=0.7,number.cex=0.7)
+
+```
+
+
+
+

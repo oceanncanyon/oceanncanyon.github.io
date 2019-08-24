@@ -1,0 +1,6 @@
+<script src="../../site_libs/bootstrap-3.3.5/js/jquery.min.js"></script>
+<script src="../../site_libs/bootstrap-3.3.5/js/jquery.scrolly.min.js"></script>
+<script src="../../site_libs/bootstrap-3.3.5/js/skel.min.js"></script>
+<script src="../../site_libs/bootstrap-3.3.5/js/skel-viewport.min.js"></script>
+<script src="../../site_libs/bootstrap-3.3.5/js/util.js"></script>
+<script src="../../site_libs/bootstrap-3.3.5/js/main.js"></script>
