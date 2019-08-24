@@ -8,7 +8,7 @@ navbar:
     - text: "Linkedin"
       href: https://www.linkedin.com/in/warren-wang/
     - text: "Resume"
-      href: Resume V12 (19 fall).pdf
+      href: Resume.pdf
   
 
 # If we want to update, by simply chage text here does not chagne the website, since the html has been coded by previous version.
