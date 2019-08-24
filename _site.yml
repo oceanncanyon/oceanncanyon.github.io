@@ -5,6 +5,11 @@ navbar:
   left:
     - text: "Project"
       href: project.html
+    - text: "Linkedin"
+      href: https://www.linkedin.com/in/warren-wang/
+    - text: "Resume"
+      href: Resume V12 (19 fall).pdf
+  
 
 # If we want to update, by simply chage text here does not chagne the website, since the html has been coded by previous version.
 # remember to run rmarkdown::render_site() in R again!
